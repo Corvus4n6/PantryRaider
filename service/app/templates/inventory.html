@@ -261,21 +261,21 @@ function renderPanel(panelId, countId, items, bucket) {
         <i class="bi bi-pencil"></i>
       </button>
       <button class="btn btn-outline-secondary btn-icon" title="Move to another location"
-              onclick="openMoveModal(${item.product_id}, '${esc(item.name)}')">
+              onclick="openMoveModal(${item.product_id})">
         <i class="bi bi-arrow-left-right"></i>
       </button>
       ${item.amount > 0 ? `
       <button class="btn btn-outline-secondary btn-icon" title="Mark one ${esc(item.name)} opened"
-              onclick="markOpened(${item.product_id}, '${esc(item.name)}')">
+              onclick="markOpened(${item.product_id})">
         <i class="bi bi-box2"></i>
       </button>` : ''}
       <button class="btn btn-outline-secondary btn-icon" title="Mark consumed"
-              onclick="consume(${item.product_id}, ${item.amount}, '${esc(item.name)}')">
+              onclick="consume(${item.product_id}, ${item.amount})">
         <i class="bi bi-check2"></i>
       </button>
       ${PRINTING_ENABLED ? `
       <button class="btn btn-outline-secondary btn-icon" title="Print label"
-              onclick="printLabel(${item.product_id}, '${esc(item.name)}')">
+              onclick="printLabel(${item.product_id})">
         <i class="bi bi-printer"></i>
       </button>` : ''}
     </div>
@@ -385,9 +385,11 @@ async function dropItem(e) {
 // Move via modal (touch devices)
 let moveTarget = null;  // { productId, name }
 
-function openMoveModal(productId, name) {
-  moveTarget = { productId, name };
-  document.getElementById('moveModalName').textContent = name;
+function openMoveModal(productId) {
+  const item = itemsById[productId];
+  if (!item) return;
+  moveTarget = { productId, name: item.name };
+  document.getElementById('moveModalName').textContent = item.name;
   new bootstrap.Modal(document.getElementById('moveModal')).show();
 }
 
@@ -458,7 +460,8 @@ async function loadDashboard() {
 // Mark one unit opened (FoodAssistant-oyef). Grocy applies the product's
 // after-opening shelf life, so the best-by date can move; reloading the
 // dashboard shows the new date and the Opened badge together.
-async function markOpened(productId, name) {
+async function markOpened(productId) {
+  const name = (itemsById[productId] || {}).name || `product ${productId}`;
   try {
     const r = await fetch(`/inventory/open/${productId}`, { method: 'POST' });
     if (!r.ok) {
@@ -472,7 +475,8 @@ async function markOpened(productId, name) {
   }
 }
 
-async function consume(productId, amount, name) {
+async function consume(productId, amount) {
+  const name = (itemsById[productId] || {}).name || `product ${productId}`;
   const fd = new FormData();
   fd.append('amount', amount);
   try {
@@ -497,7 +501,8 @@ async function consume(productId, amount, name) {
 // Print a food label for one item (FoodAssistant-fb8x). The server pulls the
 // item's name, added date, and best-by date from Grocy, so the button only
 // needs the product id.
-async function printLabel(productId, name) {
+async function printLabel(productId) {
+  const name = (itemsById[productId] || {}).name || `product ${productId}`;
   try {
     const r = await fetch('/printing/label', {
       method: 'POST',
