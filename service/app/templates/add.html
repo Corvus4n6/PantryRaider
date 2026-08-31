@@ -156,6 +156,37 @@
   Scan with the barcode scanner, or tap <strong>Open on phone</strong> to use your phone's camera.
 </div>
 
+<!-- Camera Scanner: shared across all four modes (FoodAssistant-add-camera-modes).
+     submitScan() already routes every decode by the shared scanner mode, so
+     this card lives once, above the mode panes, instead of only inside
+     Stock up: starting the camera or snapping a barcode photo here feeds
+     whichever mode is currently active. Hidden on kiosk / no-camera devices,
+     same as before. -->
+<div class="card mb-3" id="camera-scan-card">
+  <div class="card-body">
+    <h6 class="card-title">Camera Scanner</h6>
+    <div id="scanner-container" style="width:100%; max-width:400px; margin:0 auto;">
+      <div id="reader" style="width:100%"></div>
+    </div>
+    <div class="mt-2 d-flex gap-2 flex-wrap">
+      <button class="btn btn-primary" id="startScanBtn" onclick="startScanner()">
+        <i class="bi bi-camera-video me-1"></i>Start Camera
+      </button>
+      <button class="btn btn-secondary d-none" id="stopScanBtn" onclick="stopScanner()">
+        <i class="bi bi-stop-circle me-1"></i>Stop
+      </button>
+      <button class="btn btn-outline-primary" onclick="document.getElementById('barcodePhotoInput').click()">
+        <i class="bi bi-camera me-1"></i>Snap Barcode Photo
+      </button>
+      <input type="file" id="barcodePhotoInput" accept="image/*" capture="environment"
+             class="d-none" onchange="decodeBarcodePhoto(this)">
+    </div>
+    <div class="form-text mt-1">
+      Live scanning requires HTTPS. On HTTP use "Snap Barcode Photo" instead.
+    </div>
+  </div>
+</div>
+
 <!-- ============================= Stock up ============================= -->
 <div id="mode-pane-inventory">
 
@@ -184,60 +215,30 @@
 
   <!-- Barcode Tab -->
   <div class="tab-pane fade show active" id="tab-barcode">
-    <div class="row g-3">
-      <div class="col-md-6" id="camera-scan-card">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="card-title">Camera Scanner</h6>
-            <div id="scanner-container" style="width:100%; max-width:400px; margin:0 auto;">
-              <div id="reader" style="width:100%"></div>
-            </div>
-            <div class="mt-2 d-flex gap-2 flex-wrap">
-              <button class="btn btn-primary" id="startScanBtn" onclick="startScanner()">
-                <i class="bi bi-camera-video me-1"></i>Start Camera
-              </button>
-              <button class="btn btn-secondary d-none" id="stopScanBtn" onclick="stopScanner()">
-                <i class="bi bi-stop-circle me-1"></i>Stop
-              </button>
-              <button class="btn btn-outline-primary" onclick="document.getElementById('barcodePhotoInput').click()">
-                <i class="bi bi-camera me-1"></i>Snap Barcode Photo
-              </button>
-              <input type="file" id="barcodePhotoInput" accept="image/*" capture="environment"
-                     class="d-none" onchange="decodeBarcodePhoto(this)">
-            </div>
-            <div class="form-text mt-1">
-              Live scanning requires HTTPS. On HTTP use "Snap Barcode Photo" instead.
-            </div>
-          </div>
+    <div class="card">
+      <div class="card-body">
+        <h6 class="card-title">Enter Barcode Manually</h6>
+        <div class="input-group" style="max-width:400px;">
+          <input type="text" id="barcodeInput" class="form-control" placeholder="e.g. 049000028935"
+                 inputmode="numeric" pattern="[0-9]*"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();lookupBarcode();}">
+          <button class="btn btn-primary" onclick="lookupBarcode()">
+            <i class="bi bi-search me-1"></i>Look Up
+          </button>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-body">
-            <h6 class="card-title">Enter Barcode Manually</h6>
-            <div class="input-group">
-              <input type="text" id="barcodeInput" class="form-control" placeholder="e.g. 049000028935"
-                     inputmode="numeric" pattern="[0-9]*"
-                     onkeydown="if(event.key==='Enter'){event.preventDefault();lookupBarcode();}">
-              <button class="btn btn-primary" onclick="lookupBarcode()">
-                <i class="bi bi-search me-1"></i>Look Up
-              </button>
-            </div>
-            <div class="form-text">UPC-A, EAN-13, or EAN-8</div>
-            <div id="barcode-status" class="mt-2"></div>
-            <div id="barcode-saved-count" class="mt-2 d-none">
-              <span class="badge bg-success" id="barcode-saved-badge">0</span>
-              saved to
-              <a href="ui/pending">Pending</a>: review and import from there.
-            </div>
-            <!-- Live scan list (FoodAssistant-x61t): each scan appends here the
-                 instant it is stored ("Saved, looking up..."), then the row
-                 updates in place to the product name once the background lookup
-                 lands. No page reload, so a continuous scan just keeps stacking
-                 up rows. -->
-            <ul class="list-group list-group-flush mt-2 d-none" id="scan-live-list"></ul>
-          </div>
+        <div class="form-text">UPC-A, EAN-13, or EAN-8</div>
+        <div id="barcode-status" class="mt-2"></div>
+        <div id="barcode-saved-count" class="mt-2 d-none">
+          <span class="badge bg-success" id="barcode-saved-badge">0</span>
+          saved to
+          <a href="ui/pending">Pending</a>: review and import from there.
         </div>
+        <!-- Live scan list (FoodAssistant-x61t): each scan appends here the
+             instant it is stored ("Saved, looking up..."), then the row
+             updates in place to the product name once the background lookup
+             lands. No page reload, so a continuous scan just keeps stacking
+             up rows. -->
+        <ul class="list-group list-group-flush mt-2 d-none" id="scan-live-list"></ul>
       </div>
     </div>
   </div>

@@ -254,6 +254,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ------------------------------------------------------------------- scan --
+// The status box that belongs to whichever mode pane is currently active
+// (the camera scanner and manual fields are shared across all four modes).
+function currentStatusId() {
+  return {
+    inventory: 'barcode-status', consume: 'consume-status',
+    shopping: 'shopping-status', audit: 'audit-scan-status',
+  }[currentMode] || 'barcode-status';
+}
+
 // One entry point for every barcode on this page (manual fields, wedge
 // bursts, camera decodes). The server routes the scan by the shared mode;
 // the response's status tells us which pane's feedback to update, so a scan
@@ -261,10 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function submitScan(code) {
   code = (code || '').trim();
   if (!code) return;
-  const statusId = {
-    inventory: 'barcode-status', consume: 'consume-status',
-    shopping: 'shopping-status', audit: 'audit-scan-status',
-  }[currentMode] || 'barcode-status';
+  const statusId = currentStatusId();
   const statusEl = document.getElementById(statusId);
   if (statusEl) showStatus(statusId, '<span class="spinner-border spinner-border-sm me-1"></span>Working...', 'info');
   let result;
@@ -290,10 +296,7 @@ async function submitScan(code) {
 function handleScanResult(code, result) {
   // A grocycode label scan consumes in ANY mode, so its feedback targets the
   // pane the user is actually looking at, not just the consume pane.
-  const paneStatusId = {
-    inventory: 'barcode-status', consume: 'consume-status',
-    shopping: 'shopping-status', audit: 'audit-scan-status',
-  }[currentMode] || 'barcode-status';
+  const paneStatusId = currentStatusId();
   switch (result.status) {
     case 'queued':
     case 'merged':
@@ -569,7 +572,7 @@ async function decodeBarcodePhoto(input) {
   const file = input.files[0];
   if (!file) return;
   input.value = '';
-  showStatus('barcode-status', '<span class="spinner-border spinner-border-sm me-1"></span>Decoding barcode...', 'info');
+  showStatus(currentStatusId(), '<span class="spinner-border spinner-border-sm me-1"></span>Decoding barcode...', 'info');
   try {
     await ensureQrLib();
     // Same format hints as the live scanner: fewer formats to try means a
@@ -586,7 +589,7 @@ async function decodeBarcodePhoto(input) {
     const result = await decoder.scanFileV2(file, /* showImage */ false);
     await submitScan(result.decodedText);
   } catch(e) {
-    showStatus('barcode-status',
+    showStatus(currentStatusId(),
       'No barcode found in photo. Get closer, fill the frame with the barcode, and avoid glare.', 'warning');
   }
 }
@@ -597,7 +600,7 @@ async function startScanner() {
   try {
     await ensureQrLib();
   } catch (e) {
-    showStatus('barcode-status', 'The camera scanner could not load. Use the barcode box or a scanner instead.', 'warning');
+    showStatus(currentStatusId(), 'The camera scanner could not load. Use the barcode box or a scanner instead.', 'warning');
     document.getElementById('startScanBtn').classList.remove('d-none');
     document.getElementById('stopScanBtn').classList.add('d-none');
     return;
@@ -654,7 +657,7 @@ async function startScanner() {
       }
     } catch (e) { /* capability probing is best-effort */ }
   }).catch(err => {
-    showStatus('barcode-status', 'Camera error: ' + err, 'danger');
+    showStatus(currentStatusId(), 'Camera error: ' + err, 'danger');
     stopScanner();
   });
 }
