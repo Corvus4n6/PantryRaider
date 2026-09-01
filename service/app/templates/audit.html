@@ -30,6 +30,7 @@
         </button>
       </div>
     </div>
+    <div id="startResult" class="mt-2 d-none"></div>
   </div>
 </div>
 
@@ -104,6 +105,7 @@
   var applyCard = document.getElementById("applyCard");
   var applyBtn = document.getElementById("applyBtn");
   var applyResult = document.getElementById("applyResult");
+  var startResult = document.getElementById("startResult");
   var pollTimer = null;
   var discrepant = 0;        // counted items whose amount differs from Grocy
   var applyDone = false;     // keep the result visible after a run
@@ -146,14 +148,27 @@
   startBtn.addEventListener("click", async function () {
     if (!sel.value) { return; }
     startBtn.disabled = true;
+    startResult.classList.add("d-none");
     try {
-      await fetch("../audit/start", {
+      var r = await fetch("../audit/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ location: sel.value })
       });
+      if (!r.ok) {
+        var data = await r.json().catch(function () { return {}; });
+        startResult.innerHTML = '<div class="alert alert-danger py-2 mb-0">' +
+          esc(data.detail || "The audit could not be started.") + "</div>";
+        startResult.classList.remove("d-none");
+        startBtn.disabled = false;
+        return;
+      }
       enterActive();
     } catch (e) {
+      startResult.innerHTML =
+        '<div class="alert alert-danger py-2 mb-0">The audit could not be started: ' +
+        esc(String(e.message || e)) + "</div>";
+      startResult.classList.remove("d-none");
       startBtn.disabled = false;
     }
   });
