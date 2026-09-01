@@ -614,6 +614,21 @@ class MealieClient:
     async def get_shopping_list(self, list_id: str) -> dict:
         return await self._scoped("GET", f"/shopping/lists/{list_id}")
 
+    async def ensure_shopping_list(self) -> str:
+        """Return the first shopping list's id, creating one if none exist.
+
+        Mirrors GrocyClient.ensure_shopping_list: a brand-new household (or
+        one whose lists were all deleted) has none, and add_shopping_item
+        needs a real list id, not an empty string — Mealie 422s trying to
+        parse "" as the shoppingListId UUID otherwise.
+        """
+        lists = await self.get_shopping_lists()
+        if lists:
+            return lists[0]["id"]
+        created = await self._scoped("POST", "/shopping/lists",
+                                     body={"name": "Shopping list"})
+        return created["id"]
+
     async def add_shopping_item(self, list_id: str, note: str,
                                 quantity: float = 1.0) -> dict:
         return await self._scoped("POST", "/shopping/items", body={

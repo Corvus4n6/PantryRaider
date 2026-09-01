@@ -63,6 +63,7 @@
       <datalist id="new-item-suggestions"></datalist>
       <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i></button>
     </form>
+    <div id="add-status" class="mb-2"></div>
 
     <div id="items" class="list-group">
       <div class="text-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Loading…</div>
@@ -102,6 +103,25 @@ let itemsById = {};
 
 function esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// fetch() only rejects on a network failure, never on an HTTP error status,
+// so every mutating call below must check r.ok itself or a 4xx/5xx (a
+// missing shopping list, an unreachable backend, ...) silently vanishes:
+// the request fails but the page looks like nothing happened at all.
+async function checkOk(r) {
+  if (!r.ok) {
+    const detail = (await r.json().catch(() => ({}))).detail;
+    throw new Error(detail || r.statusText);
+  }
+  return r;
+}
+
+function showAddStatus(message) {
+  const el = document.getElementById('add-status');
+  if (!el) return;
+  el.innerHTML = message
+    ? `<div class="alert alert-danger py-1 px-2 mb-0 small">${message}</div>` : '';
 }
 
 async function load(listId = '') {
@@ -157,14 +177,24 @@ async function load(listId = '') {
 
 async function toggleItem(id, checked) {
   const item = {...itemsById[id], checked};
-  await fetch('mealie/shopping/items/' + id, {
-    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(item),
-  });
+  try {
+    await checkOk(await fetch('mealie/shopping/items/' + id, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(item),
+    }));
+    showAddStatus('');
+  } catch (e) {
+    showAddStatus(`Could not update the item: ${esc(e.message)}`);
+  }
   load(currentListId);
 }
 
 async function removeItem(id) {
-  await fetch('mealie/shopping/items/' + id, {method: 'DELETE'});
+  try {
+    await checkOk(await fetch('mealie/shopping/items/' + id, {method: 'DELETE'}));
+    showAddStatus('');
+  } catch (e) {
+    showAddStatus(`Could not delete the item: ${esc(e.message)}`);
+  }
   load(currentListId);
 }
 
@@ -173,11 +203,16 @@ async function addItem(ev) {
   const input = document.getElementById('new-item');
   const note = input.value.trim();
   if (!note) return;
-  await fetch('mealie/shopping/items', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({list_id: currentListId || '', note}),
-  });
-  input.value = '';
+  try {
+    await checkOk(await fetch('mealie/shopping/items', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({list_id: currentListId || '', note}),
+    }));
+    input.value = '';
+    showAddStatus('');
+  } catch (e) {
+    showAddStatus(`Could not add "${esc(note)}": ${esc(e.message)}`);
+  }
   load(currentListId);
 }
 
@@ -201,10 +236,15 @@ function suggestItems(q) {
 
 {% if shopping_backend == 'grocy' %}
 async function clearDone() {
-  await fetch('mealie/shopping/clear-done', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({list_id: String(currentListId || '')}),
-  });
+  try {
+    await checkOk(await fetch('mealie/shopping/clear-done', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({list_id: String(currentListId || '')}),
+    }));
+    showAddStatus('');
+  } catch (e) {
+    showAddStatus(`Could not clear checked items: ${esc(e.message)}`);
+  }
   load(currentListId);
 }
 
@@ -234,10 +274,15 @@ async function loadSuggestions() {
 }
 
 async function addSuggestion(name) {
-  await fetch('mealie/shopping/items', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({list_id: String(currentListId || ''), note: name}),
-  });
+  try {
+    await checkOk(await fetch('mealie/shopping/items', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({list_id: String(currentListId || ''), note: name}),
+    }));
+    showAddStatus('');
+  } catch (e) {
+    showAddStatus(`Could not add "${esc(name)}": ${esc(e.message)}`);
+  }
   load(currentListId);
 }
 

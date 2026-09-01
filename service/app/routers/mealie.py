@@ -2058,8 +2058,10 @@ async def add_shopping_item(payload: ShoppingItemPayload):
             raise HTTPException(502, str(e))
         return {"ok": True, "id": item.get("id")}
     try:
-        item = await _client().add_shopping_item(
-            payload.list_id, payload.note.strip(), payload.quantity)
+        m = _client()
+        list_id = payload.list_id.strip() if payload.list_id.strip() else await m.ensure_shopping_list()
+        item = await m.add_shopping_item(
+            list_id, payload.note.strip(), payload.quantity)
     except _mealie().MealieError as e:
         raise HTTPException(502, str(e))
     return {"ok": True, "id": item.get("id")}
